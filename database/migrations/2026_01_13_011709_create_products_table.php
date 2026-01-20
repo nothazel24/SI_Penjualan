@@ -16,11 +16,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('thumbnail')->nullable(); // primary thumbnail
-            $table->json('gallery')->nullable(); // relasikan ke product_photos saja
             $table->text('about');
             $table->unsignedBigInteger('price');
             $table->unsignedBigInteger('stock');
-            $table->json('size')->nullable(); // relasikan ke product_sizes saja
             $table->boolean('is_popular')->default(false);
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
             $table->foreignId('brand_id')->constrained()->cascadeOnDelete();

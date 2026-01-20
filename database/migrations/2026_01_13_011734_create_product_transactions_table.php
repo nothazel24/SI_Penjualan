@@ -17,10 +17,11 @@ return new class extends Migration
             $table->string('phone');
             $table->string('email');
             $table->string('booking_trx_id')->unique();
-            $table->string('city');
+            $table->string('province_id');
+            $table->string('city_id');
             $table->string('post_code');
             $table->string('proof');
-            $table->unsignedBigInteger('size');
+            $table->string('size');
             $table->text('address');
             $table->unsignedBigInteger('sub_total_amount');
             $table->unsignedBigInteger('grand_total_amount');

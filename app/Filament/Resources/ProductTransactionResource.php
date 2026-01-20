@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductTransactionResource\Pages;
 use App\Filament\Resources\ProductTransactionResource\RelationManagers;
 use App\Models\ProductTransaction;
+use App\Service\WilayahService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -61,15 +62,9 @@ class ProductTransactionResource extends Resource
 
                 // bikin database baru & perbaharui (Product Transaction)
                 Select::make('province_id')
-                    ->label('Kota / Kabupaten')
-                    ->options(function () {
-                        return Http::get(
-                            'https://open-api.my.id/api/wilayah/provinces'
-                        )
-                            ->collect()
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    })
+                    ->label('Provinsi')
+                    // call function provinces() -> App\Service\WilayahService
+                    ->options(fn() => WilayahService::provinces())
                     ->searchable()
                     ->live()
                     ->afterStateUpdated(fn(callable $set) => $set('city_id', null))
@@ -77,20 +72,14 @@ class ProductTransactionResource extends Resource
 
                 Select::make('city_id')
                     ->label('Kota / Kabupaten')
-                    ->options(function (callable $get) {
-                        if (! $get('province_id')) {
-                            return [];
-                        }
-
-                        return Http::get(
-                            "https://open-api.my.id/api/wilayah/regencies/{$get('province_id')}"
-                        )
-                            ->collect()
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    })
+                    ->options(
+                        // fetching data & result
+                        fn(callable $get) =>
+                        $get('province_id') ? WilayahService::cities($get('province_id')) : []
+                    )
                     ->searchable()
                     ->required()
+                    // disable jika tidak ada data provinsi yang terdeteksi
                     ->disabled(fn(callable $get) => ! $get('province_id')),
 
                 TextInput::make('post_code')
@@ -105,10 +94,16 @@ class ProductTransactionResource extends Resource
                     ->required()
                     ->label('Bukti'),
 
-                TextInput::make('size')
+                Select::make('size')
                     ->label('Ukuran')
                     ->required()
-                    ->numeric(),
+                    ->options([
+                        's' => 'S',
+                        'm' => 'M',
+                        'l' => 'L',
+                        'xl' => 'XL',
+                        'xxl' => 'XXL'
+                    ]),
 
                 TextInput::make('address')
                     ->label('Alamat')
@@ -140,7 +135,7 @@ class ProductTransactionResource extends Resource
                     ->label('Produk'),
 
                 Select::make('promo_code_id')
-                    ->required()
+                    ->nullable()
                     ->relationship('promo_code', 'code')
                     ->label('Kode Promo'),
 

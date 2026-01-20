@@ -59,7 +59,7 @@ class ProductTransactionResource extends Resource
                     ->dehydrated(false)
                     ->visibleOn('edit'),
 
-                // ubah ke provinsi 
+                // bikin database baru & perbaharui (Product Transaction)
                 Select::make('province_id')
                     ->label('Kota / Kabupaten')
                     ->options(function () {

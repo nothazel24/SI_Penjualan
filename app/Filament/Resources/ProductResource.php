@@ -20,6 +20,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -61,32 +62,35 @@ class ProductResource extends Resource
                         FieldSet::make('')
                             ->schema([
                                 // Repeatable thumbnail
-                                Repeater::make('gallery')
+                                Repeater::make('photos')
+                                    ->relationship()
                                     ->schema([
-                                        FileUpload::make('gallery')
+                                        FileUpload::make('photo')
                                             ->image()
-                                            ->directory('products/gallery')
+                                            ->directory('products/photos')
                                             ->maxSize(1024)
                                             ->label('Tambahkan gambar produk yang lainnya'),
                                     ])
                                     ->addActionLabel('Tambah thumbnail Lainnya')
-                                    ->reorderableWithButtons(),
+                                    ->reorderableWithButtons()
+                                    ->label('Foto Tambahan'),
 
-                                Repeater::make('ukuran')
+                                Repeater::make('sizes') // hasMany Relationship ('sizes')
+                                    ->relationship()
                                     ->schema([
-                                        // bug null data
-                                        TagsInput::make('size')
+                                        Select::make('size')
                                             ->required()
                                             ->label('Tambahkan ukuran produk yang lainnya')
-                                            ->suggestions([
-                                                'S',
-                                                'M',
-                                                'L',
-                                                'XL', 
-                                                'XXL'
+                                            ->options([
+                                                's' => 'S',
+                                                'm' => 'M',
+                                                'l' => 'L',
+                                                'xl' => 'XL',
+                                                'xxl' => 'XXL'
                                             ])
                                     ])
-                                    ->addActionLabel('Tambah ukuran produk lainnya'),
+                                    ->addActionLabel('Tambah ukuran produk lainnya')
+                                    ->label('Ukuran'),
                             ])
                             ->columns(2),
 
@@ -94,7 +98,7 @@ class ProductResource extends Resource
                         // Fieldset 3 (Neccessary Information)
                         Fieldset::make('Informasi Tambahan')
                             ->schema([
-                                TextInput::make('about')
+                                Textarea::make('about')
                                     ->required()
                                     ->label('Deskripsi / Tentang Produk'),
 
@@ -131,39 +135,40 @@ class ProductResource extends Resource
         return $table
             ->columns([
                 ImageColumn::make('thumbnail')
-                ->label('Thumbnail'),
+                    ->label('Thumbnail'),
 
                 TextColumn::make('name')
-                ->searchable()
-                ->sortable()
-                ->label('Nama produk'),
+                    ->searchable()
+                    ->sortable()
+                    ->label('Nama produk'),
 
                 TextColumn::make('price')
-                ->sortable()
-                ->money('IDR')
-                ->label('Harga'),
+                    ->sortable()
+                    ->money('IDR')
+                    ->label('Harga'),
 
                 // displaying relationships data (table.columns)
                 TextColumn::make('category.name')
-                ->sortable()
-                ->label('Kategori'),
+                    ->sortable()
+                    ->label('Kategori'),
 
                 TextColumn::make('brand.name')
-                ->sortable()
-                ->label('Merk'),
+                    ->sortable()
+                    ->label('Merk'),
 
                 TextColumn::make('stock')
-                ->sortable()
-                ->label('Stok'),
+                    ->sortable()
+                    ->label('Stok'),
 
                 IconColumn::make('is_popular')
-                ->boolean()
-                ->label('Populer'),
+                    ->boolean()
+                    ->label('Populer'),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
             ])

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+
+use function Symfony\Component\Clock\now;
 
 class ProductTransaction extends Model
 {
@@ -18,7 +21,7 @@ class ProductTransaction extends Model
         'city',
         'post_code',
         'address',
-        'quantity',
+        'size',
         'sub_total_amount',
         'grand_total_amount',
         'is_paid',
@@ -28,15 +31,12 @@ class ProductTransaction extends Model
         'proof'
     ];
 
-    // Generate unique code
-    public static function generateUniqueTrxId()
+    // Auto generate booking_id coyy
+    protected static function booted()
     {
-        $prefix = 'TJH';
-        do {
-            $randomString = $prefix . mt_rand(10001, 99999);
-        } while (self::where('booking_trx_id', $randomString)->exist());
-
-        return $randomString;
+        static::creating(function ($order) {
+            $order->booking_trx_id = 'TRX' . '-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        });
     }
 
     public function product()
@@ -44,7 +44,7 @@ class ProductTransaction extends Model
         return $this->belongsTo(Product::class, 'product_id');
     }
 
-    public function promoCode()
+    public function promo_code()
     {
         return $this->belongsTo(PromoCode::class, 'promo_code_id');
     }

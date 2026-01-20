@@ -11,7 +11,12 @@ class ProductPhoto extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'photo', 
+        'photo',
         'product_id'
     ];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

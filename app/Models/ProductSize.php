@@ -11,7 +11,12 @@ class ProductSize extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'size', 
+        'size',
         'product_id'
     ];
+
+    public function product_size()
+    {
+        return $this->belongsTo(ProductSize::class);
+    }
 }

@@ -16,18 +16,11 @@ class Product extends Model
         'slug',
         'thumbnail',
         'about',
-        'gallery',
-        'size',
         'price',
         'stock',
         'is_popular',
         'category_id',
         'brand_id',
-    ];
-
-    protected $casts = [
-        'gallery' => 'array',
-        'size' => 'array',
     ];
 
     public function brand()

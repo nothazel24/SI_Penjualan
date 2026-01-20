@@ -14,6 +14,9 @@ class EditProductTransaction extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
+            // Force delete (permanent) & restore
+            Actions\ForceDeleteAction::make(),
+            Actions\RestoreAction::make(),
         ];
     }
 }

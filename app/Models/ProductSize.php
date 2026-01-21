@@ -15,6 +15,20 @@ class ProductSize extends Model
         'product_id'
     ];
 
+    // Auto get size data (dari relasi bersarang tabel product_size)
+    protected static function getSizes(?int $productId)
+    {
+        // checking
+        if (!$productId) {
+            return [];
+        }
+
+        // get data
+        return static::where('product_id', $productId)
+            ->pluck('size', 'id')
+            ->toArray();
+    }
+
     public function product_size()
     {
         return $this->belongsTo(ProductSize::class);

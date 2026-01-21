@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductTransactionResource\Pages;
 use App\Filament\Resources\ProductTransactionResource\RelationManagers;
-use App\Models\ProductTransaction;
 use App\Service\WilayahService;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
@@ -18,9 +17,16 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 // Library or nahh..
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+
+// models
+use App\Models\ProductTransaction;
+use App\Models\ProductSize;
+use Filament\Notifications\Notification;
+use Throwable;
 
 class ProductTransactionResource extends Resource
 {
@@ -33,8 +39,11 @@ class ProductTransactionResource extends Resource
         return $form
             ->schema([
 
-                // Fieldset 1
-                Fieldset::make('Informasi pembeli')
+                // CUSTOMER DATA SECTION
+                Section::make('Informasi Pembeli')
+                    ->collapsible()
+                    ->collapsed()
+                    ->columns(2)
                     ->schema([
                         TextInput::make('name')
                             ->required()
@@ -58,7 +67,7 @@ class ProductTransactionResource extends Resource
                             ])
                             ->label('Nomor Telepon'),
 
-                        // Fieldset 2
+                        // Fieldset 1
                         Fieldset::make('Alamat lengkap pembeli')
                             ->schema([
                                 Select::make('province_id')
@@ -66,19 +75,29 @@ class ProductTransactionResource extends Resource
                                     // call function provinces() -> App\Service\WilayahService.php
                                     ->options(fn() => WilayahService::provinces())
                                     ->searchable()
-                                    ->live()
+                                    ->live(onBlur: true)
                                     ->afterStateUpdated(fn(callable $set) => $set('city_id', null))
                                     ->required(),
 
                                 Select::make('city_id')
                                     ->label('Kota / Kabupaten')
-                                    ->options(
-                                        // fetching data & result
-                                        fn(callable $get) =>
-                                        $get('province_id') ? WilayahService::cities($get('province_id')) : []
-                                    )
+                                    ->options(function (callable $get) {
+                                        // catch data
+                                        try {
+                                            // App\Service\WilayahService::cities()
+                                            return $get('province_id') ? WilayahService::cities($get('province_id')) : [];
+                                        } catch (\Throwable) { // trhow notificationnnn
+                                            Notification::make()
+                                                ->title('API Timeout :(')
+                                                ->body('Sepertinya jaringanmu sedang kurang baik, coba refresh dan isi lagi datanya')
+                                                ->danger()
+                                                ->send();
+
+                                            return [];
+                                        }
+                                    })
                                     ->searchable()
-                                    ->required()
+                                    ->requiredIf('province_id', fn($state) => filled($state))
                                     // disable jika tidak ada data provinsi yang terdeteksi
                                     ->disabled(fn(callable $get) => ! $get('province_id')),
 
@@ -94,8 +113,12 @@ class ProductTransactionResource extends Resource
                     ]),
 
                 // Fieldset 3
-                Fieldset::make('Detail Produk')
+                Section::make('Detail Produk')
+                    ->collapsible()
+                    ->collapsed()
+                    ->columns(2)
                     ->schema([
+
                         TextInput::make('booking_trx_id')
                             ->label('Booking Transaction ID')
                             ->disabled()
@@ -106,30 +129,28 @@ class ProductTransactionResource extends Resource
                         Select::make('product_id')
                             ->required()
                             ->relationship('product', 'name')
+                            ->reactive()
                             ->label('Produk yang dibeli'),
 
                         Select::make('size')
                             ->label('Ukuran')
-                            ->required()
-                            ->options([
-                                's' => 'S',
-                                'm' => 'M',
-                                'l' => 'L',
-                                'xl' => 'XL',
-                                'xxl' => 'XXL'
-                            ]),
+                            ->required() // rawan bug, tapi gpp. nanti fix aja kalo beneran ada, hehe
+                            // App/Models/ProductSize::getSize()
+                            ->options(function (callable $get) {
+                                // catch data
+                                try {
+                                    return ProductSize::getSizes($get('product_id'));
+                                } catch (\Throwable) { // send notification (jika gagal)
+                                    Notification::make()
+                                        ->title('Masukkan data yang benar!')
+                                        ->body('Data tidak boleh kosong, atau bukan angka!')
+                                        ->danger()
+                                        ->send();
 
-                        TextInput::make('sub_total_amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->label('Sub Total'),
-
-                        TextInput::make('grand_total_amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->label('Grand Total'),
+                                    return [];
+                                }
+                            })
+                            ->disabled(fn(callable $get) => !$get('product_id')),
 
                         Select::make('is_paid')
                             ->required()
@@ -150,7 +171,20 @@ class ProductTransactionResource extends Resource
                             ->maxSize(1024)
                             ->required()
                             ->columnSpanFull()
-                            ->label('Bukti pembelian')
+                            ->label('Bukti pembelian'),
+
+                        // TOTAL SECTION
+                        TextInput::make('sub_total_amount')
+                            ->required()
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->label('Sub Total'),
+
+                        TextInput::make('grand_total_amount')
+                            ->required()
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->label('Total'),
                     ]),
 
             ]);
@@ -177,17 +211,23 @@ class ProductTransactionResource extends Resource
                 TextColumn::make('booking_trx_id')
                     ->label('Booking ID'),
 
+                // coba search, dibagian boolean ieu bisa diubah nu asal na icons jadi text?
                 IconColumn::make('is_paid')
                     ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-x-mark')
                     ->label('Status Pembayaran'),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->iconButton(),
+                Tables\Actions\EditAction::make()
+                    ->iconButton(),
                 Tables\Actions\DeleteAction::make()
+                    ->iconButton()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

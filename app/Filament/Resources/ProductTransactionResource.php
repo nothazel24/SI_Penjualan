@@ -85,7 +85,7 @@ class ProductTransactionResource extends Resource
                                         // catch data
                                         try {
                                             // App\Service\WilayahService::cities()
-                                            return $get('province_id') ? WilayahService::cities($get('province_id')) : [];
+                                            return WilayahService::cities($get('province_id'));
                                         } catch (\Throwable) { // trhow notificationnnn
                                             Notification::make()
                                                 ->title('API Timeout :(')

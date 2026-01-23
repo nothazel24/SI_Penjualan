@@ -29,7 +29,6 @@ class PromoCodeResource extends Resource
             ->schema([
                 TextInput::make('code')
                     ->required()
-                    ->numeric()
                     ->maxLength(255)
                     ->label('Kode Promo'),
 
@@ -50,7 +49,8 @@ class PromoCodeResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('discount_amount')
-                    ->label('Kode Promo')
+                    ->label('Jumlah diskon')
+                    ->money('IDR')
                     ->sortable(),
             ])
             ->filters([

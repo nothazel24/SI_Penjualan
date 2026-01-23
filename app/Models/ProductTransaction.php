@@ -28,6 +28,7 @@ class ProductTransaction extends Model
         'is_paid',
         'product_id',
         'promo_code_id',
+        'qty',
         'proof'
     ];
 

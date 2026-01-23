@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductTransactionResource\Pages;
 use App\Filament\Resources\ProductTransactionResource\RelationManagers;
 use App\Service\WilayahService;
+use App\Service\TransactionsCalc;
 use Filament\Forms;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Form;
@@ -14,6 +15,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+// models
+use App\Models\ProductTransaction;
+use App\Models\ProductSize;
+use App\Models\Product;
+
 // Library or nahh..
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -22,9 +28,6 @@ use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 
-// models
-use App\Models\ProductTransaction;
-use App\Models\ProductSize;
 use Filament\Notifications\Notification;
 use Throwable;
 
@@ -34,16 +37,34 @@ class ProductTransactionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
+    // helper recalculate (Biar gk ngulang terus)
+    protected static function recalculate(callable $get, callable $set)
+    {
+        if (! $get('product_id') || ! $get('qty')) {
+            $set('sub_total_amount', 0);
+            $set('grand_total_amount', 0);
+            return;
+        }
+
+        $result = TransactionsCalc::calculate(
+            (int) $get('product_id'),
+            (int) $get('qty'),
+            filled($get('promo_code_id'))
+                ? (int) $get('promo_code_id')
+                : null
+        );
+
+        $set('sub_total_amount', $result['subtotal']);
+        $set('grand_total_amount', $result['total']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
 
                 // CUSTOMER DATA SECTION
-                Section::make('Informasi Pembeli')
-                    ->collapsible()
-                    ->collapsed()
-                    ->columns(2)
+                Fieldset::make('Informasi Pembeli')
                     ->schema([
                         TextInput::make('name')
                             ->required()
@@ -75,7 +96,7 @@ class ProductTransactionResource extends Resource
                                     // call function provinces() -> App\Service\WilayahService.php
                                     ->options(fn() => WilayahService::provinces())
                                     ->searchable()
-                                    ->live(onBlur: true)
+                                    ->reactive()
                                     ->afterStateUpdated(fn(callable $set) => $set('city_id', null))
                                     ->required(),
 
@@ -113,10 +134,7 @@ class ProductTransactionResource extends Resource
                     ]),
 
                 // Fieldset 3
-                Section::make('Detail Produk')
-                    ->collapsible()
-                    ->collapsed()
-                    ->columns(2)
+                Fieldset::make('Detail Produk')
                     ->schema([
 
                         TextInput::make('booking_trx_id')
@@ -130,7 +148,11 @@ class ProductTransactionResource extends Resource
                             ->required()
                             ->relationship('product', 'name')
                             ->reactive()
-                            ->label('Produk yang dibeli'),
+                            ->label('Produk yang dibeli')
+                            ->afterStateUpdated(
+                                fn($set, $get) =>
+                                static::recalculate($get, $set)
+                            ),
 
                         Select::make('size')
                             ->label('Ukuran')
@@ -152,6 +174,18 @@ class ProductTransactionResource extends Resource
                             })
                             ->disabled(fn(callable $get) => !$get('product_id')),
 
+                        TextInput::make('qty')
+                            ->numeric()
+                            ->default(1)
+                            ->minValue(1)
+                            ->reactive()
+                            ->required()
+                            // trigger event function (jika sudah diupdate (AfterStateUpdated))
+                            ->afterStateUpdated(
+                                fn($set, $get) =>
+                                static::recalculate($get, $set)
+                            ),
+
                         Select::make('is_paid')
                             ->required()
                             ->label('Sudah Lunas?')
@@ -163,7 +197,12 @@ class ProductTransactionResource extends Resource
                         Select::make('promo_code_id')
                             ->nullable()
                             ->relationship('promo_code', 'code')
-                            ->label('Kode Promo'),
+                            ->reactive()
+                            ->label('Kode Promo')
+                            ->afterStateUpdated(
+                                fn($set, $get) =>
+                                static::recalculate($get, $set)
+                            ),
 
                         FileUpload::make('proof')
                             ->image()
@@ -175,16 +214,25 @@ class ProductTransactionResource extends Resource
 
                         // TOTAL SECTION
                         TextInput::make('sub_total_amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->label('Sub Total'),
+                            ->label('Sub Total')
+                            ->readOnly()
+                            ->disabled()
+                            ->dehydrated()
+                            ->formatStateUsing(
+                                fn($state) =>
+                                'Rp ' . number_format($state ?? 0, 0, ',', '.')
+                            ),
 
                         TextInput::make('grand_total_amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->label('Total'),
+                            ->label('Total')
+                            ->readOnly()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->formatStateUsing(
+                                fn($state) =>
+                                'Rp ' . number_format($state ?? 0, 0, ',', '.')
+                            ),
+
                     ]),
 
             ]);

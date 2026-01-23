@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('address');
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('qty');
+            $table->unsignedBigInteger('size');
             $table->unsignedBigInteger('sub_total_amount');
             $table->unsignedBigInteger('grand_total_amount');
             $table->boolean('is_paid');

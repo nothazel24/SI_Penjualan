@@ -43,6 +43,11 @@ class Product extends Model
         return $this->hasMany(ProductSize::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(ProductTransaction::class);
+    }
+
     public function setNameAttribute($value)
     {
         $this->attributes['name'] = $value;

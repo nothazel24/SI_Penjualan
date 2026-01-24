@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\ProductTransaction;
 use App\Models\ProductSize;
 use App\Models\Product;
-
+use BladeUI\Icons\Components\Icon;
 // Library or nahh..
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -56,6 +56,31 @@ class ProductTransactionResource extends Resource
 
         $set('sub_total_amount', $result['subtotal']);
         $set('grand_total_amount', $result['total']);
+    }
+
+    protected static function getQty($state, callable $set)
+    {
+        $product = Product::find($state);
+        $set('stock', $product ? (int) $product->stock : null);
+    }
+
+    // helper validate qty
+    protected static function validateQtyAgainstStock(int $qty, callable $get)
+    {
+        // get stock
+        $stock = $get('stock');
+
+        if (! is_numeric($stock)) {
+            return;
+        }
+
+        if ($qty > $stock) {
+            Notification::make()
+                ->title('Over Quantity')
+                ->body('Qty melebihi batas dari stok yang ada!. Silahkan kurangi')
+                ->danger()
+                ->send();
+        }
     }
 
     public static function form(Form $form): Form
@@ -150,8 +175,10 @@ class ProductTransactionResource extends Resource
                             ->reactive()
                             ->label('Produk yang dibeli')
                             ->afterStateUpdated(
-                                fn($set, $get) =>
-                                static::recalculate($get, $set)
+                                function ($state, callable $get, callable $set) {
+                                    static::recalculate($get, $set);
+                                    static::getQty($state, $set);
+                                }
                             ),
 
                         Select::make('size')
@@ -164,8 +191,8 @@ class ProductTransactionResource extends Resource
                                     return ProductSize::getSizes($get('product_id'));
                                 } catch (\Throwable) { // send notification (jika gagal)
                                     Notification::make()
-                                        ->title('Masukkan data yang benar!')
-                                        ->body('Data tidak boleh kosong, atau bukan angka!')
+                                        ->title('Data Produk kosong')
+                                        ->body('Produk tidak boleh kosong, silahkan diisi!')
                                         ->danger()
                                         ->send();
 
@@ -174,17 +201,35 @@ class ProductTransactionResource extends Resource
                             })
                             ->disabled(fn(callable $get) => !$get('product_id')),
 
+                        /*
+                            include trigger event function buat relcalculate & validate Qty
+                            (jika sudah diupdate (AfterStateUpdated))
+                        */
                         TextInput::make('qty')
                             ->numeric()
                             ->default(1)
                             ->minValue(1)
                             ->reactive()
                             ->required()
-                            // trigger event function (jika sudah diupdate (AfterStateUpdated))
                             ->afterStateUpdated(
-                                fn($set, $get) =>
-                                static::recalculate($get, $set)
-                            ),
+                                function ($state, callable $get, callable $set) {
+                                    static::recalculate($get, $set);
+                                    static::validateQtyAgainstStock($state, $get);
+                                }
+                            )
+                            ->rule(function (callable $get) { // rule buat check data
+                                return function ($attribute, $value, $fail) use ($get) {
+                                    $stock = $get('stock');
+
+                                    if (! is_numeric($stock)) {
+                                        return;
+                                    }
+
+                                    if ($value > (int) $get('stock')) {
+                                        $fail('Qty melebihi stok yang tersedia.');
+                                    }
+                                };
+                            }),
 
                         Select::make('is_paid')
                             ->required()
@@ -200,7 +245,7 @@ class ProductTransactionResource extends Resource
                             ->reactive()
                             ->label('Kode Promo')
                             ->afterStateUpdated(
-                                fn($set, $get) =>
+                                fn($state, callable $set, callable $get) =>
                                 static::recalculate($get, $set)
                             ),
 
@@ -218,19 +263,21 @@ class ProductTransactionResource extends Resource
                             ->readOnly()
                             ->disabled()
                             ->dehydrated()
+                            ->prefix('Rp.')
                             ->formatStateUsing(
                                 fn($state) =>
-                                'Rp ' . number_format($state ?? 0, 0, ',', '.')
+                                number_format($state ?? 0, 0, ',', '.')
                             ),
 
                         TextInput::make('grand_total_amount')
                             ->label('Total')
                             ->readOnly()
                             ->disabled()
+                            ->prefix('Rp.')
                             ->dehydrated(true)
                             ->formatStateUsing(
                                 fn($state) =>
-                                'Rp ' . number_format($state ?? 0, 0, ',', '.')
+                                number_format($state ?? 0, 0, ',', '.')
                             ),
 
                     ]),
@@ -261,10 +308,13 @@ class ProductTransactionResource extends Resource
 
                 // coba search, dibagian boolean ieu bisa diubah nu asal na icons jadi text?
                 IconColumn::make('is_paid')
+                    // ->badge()
                     ->boolean()
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-x-mark')
-                    ->label('Status Pembayaran'),
+                    ->label('Status Pembayaran')
+                // ->formatStateUsing(fn ($state) => match ($state) {
+                //     '0' => 'Belum Lunas',
+                //     '1' => 'Lunas'
+                // }),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),

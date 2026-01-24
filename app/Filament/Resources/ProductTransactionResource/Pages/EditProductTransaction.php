@@ -6,9 +6,19 @@ use App\Filament\Resources\ProductTransactionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
+use Illuminate\Database\Eloquent\Model;
+use App\Service\ProductTransactionService;
+
 class EditProductTransaction extends EditRecord
 {
     protected static string $resource = ProductTransactionResource::class;
+
+    // calling productTransactionService (update)
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        return app(ProductTransactionService::class)
+            ->create($data);
+    }
 
     protected function getHeaderActions(): array
     {

@@ -30,7 +30,11 @@ class PromoCodeResource extends Resource
                 TextInput::make('code')
                     ->required()
                     ->maxLength(255)
-                    ->label('Kode Promo'),
+                    ->unique(ignoreRecord: true)
+                    ->label('Kode Promo')
+                    ->validationMessages([
+                        'unique' => 'Kode promo sudah digunakan. Silahkan masukkan kode promo yang lain'
+                    ]),
 
                 TextInput::make('discount_amount')
                     ->required()
@@ -58,9 +62,9 @@ class PromoCodeResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                ->iconButton(),
+                    ->iconButton(),
                 Tables\Actions\DeleteAction::make()
-                ->iconButton(),
+                    ->iconButton(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -32,7 +32,11 @@ class CategoryResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255)
-                    ->label('Kategori'),
+                    ->unique(ignoreRecord: true)
+                    ->label('Kategori')
+                    ->validationMessages([
+                        'unique' => 'Nama kategori sudah digunakan. Silahkan masukkan nama kategori yang lain'
+                    ]),
 
                 FileUpload::make('icon')
                     ->image()
@@ -60,9 +64,9 @@ class CategoryResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                ->iconButton(),
+                    ->iconButton(),
                 Tables\Actions\DeleteAction::make()
-                ->iconButton(),
+                    ->iconButton(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

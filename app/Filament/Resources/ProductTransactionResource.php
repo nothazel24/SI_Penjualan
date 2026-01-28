@@ -95,12 +95,22 @@ class ProductTransactionResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull()
-                            ->label('Nama Pembeli'),
+                            ->regex('/^[A-Za-z\s.]+$/')
+                            ->label('Nama Pembeli')
+                            ->validationMessages([
+                                'required' => 'Nama wajib diisi!',
+                                'regex' => 'Nama hanya bisa diisi oleh huruf!'
+                            ]),
 
                         TextInput::make('email')
                             ->required()
                             ->maxLength(255)
-                            ->label('Email Pengguna'),
+                            ->regex('/^.+@.+$/i')
+                            ->label('Email Pengguna')
+                            ->validationMessages([
+                                'required' => 'Email wajib diisi!',
+                                'regex' => 'Masukkan alamat email yang valid!'
+                            ]),
 
                         TextInput::make('phone')
                             ->required()
@@ -253,7 +263,6 @@ class ProductTransactionResource extends Resource
                             ->image()
                             ->directory('products/proof')
                             ->maxSize(1024)
-                            ->required()
                             ->columnSpanFull()
                             ->label('Bukti pembelian'),
 
@@ -306,15 +315,11 @@ class ProductTransactionResource extends Resource
                 TextColumn::make('booking_trx_id')
                     ->label('Booking ID'),
 
-                // coba search, dibagian boolean ieu bisa diubah nu asal na icons jadi text?
-                IconColumn::make('is_paid')
-                    // ->badge()
-                    ->boolean()
+                TextColumn::make('is_paid')
+                    ->badge()
                     ->label('Status Pembayaran')
-                // ->formatStateUsing(fn (bool $state) => match ($state) {
-                //     ? 'Belum Lunas',
-                //     : => 'Lunas'
-                // }),
+                    ->formatStateUsing(fn(bool $state) => $state ? 'Lunas' : 'Belum lunas')
+                    ->color(fn(bool $state) => $state ? 'success' : 'danger')
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),

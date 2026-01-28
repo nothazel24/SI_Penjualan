@@ -41,7 +41,11 @@ class ProductResource extends Resource
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255)
-                            ->label('Nama Produk'),
+                            ->unique(ignoreRecord: true)
+                            ->label('Nama Produk')
+                            ->validationMessages([
+                                'unique' => 'Nama produk sudah ada. Silahkan masukkan nama produk yang lain'
+                            ]),
 
                         TextInput::make('price')
                             ->required()
@@ -81,13 +85,12 @@ class ProductResource extends Resource
                                         Select::make('size')
                                             ->required()
                                             ->label('Tambahkan ukuran produk yang lainnya')
-                                            ->options([
-                                                's' => 'S',
-                                                'm' => 'M',
-                                                'l' => 'L',
-                                                'xl' => 'XL',
-                                                'xxl' => 'XXL'
-                                            ])
+                                            ->options(
+                                                // looping ukuran/size (30-45)
+                                                collect(range(30, 45))
+                                                    ->mapWithKeys(fn($size) => [$size => (string) $size])
+                                                    ->toArray()
+                                            )
                                     ])
                                     ->addActionLabel('Tambah ukuran produk lainnya')
                                     ->label('Ukuran'),
@@ -169,11 +172,11 @@ class ProductResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                ->iconButton(),
+                    ->iconButton(),
                 Tables\Actions\EditAction::make()
-                ->iconButton(),
+                    ->iconButton(),
                 Tables\Actions\DeleteAction::make()
-                ->iconButton()
+                    ->iconButton()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

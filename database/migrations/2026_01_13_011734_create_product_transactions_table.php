@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('province_id');
             $table->string('city_id');
             $table->string('post_code');
-            $table->string('proof');
+            $table->string('proof')->nullable();
             $table->text('address');
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('qty');

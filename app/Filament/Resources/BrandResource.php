@@ -33,17 +33,21 @@ class BrandResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name')
-                ->required()
-                ->maxLength(255)
-                ->label('Nama Brand'),
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255)
+                    ->label('Nama Brand')
+                    ->validationMessages([
+                        'unique' => 'Nama brand sudah ada. Silahkan masukkan nama brand yang lain'
+                    ]),
 
                 FileUpload::make('logo')
-                ->image()
-                ->directory('brands')
-                ->maxSize(1024)
-                ->required()
-                ->nullable()
-                ->label('Logo')
+                    ->image()
+                    ->directory('brands')
+                    ->maxSize(1024)
+                    ->required()
+                    ->nullable()
+                    ->label('Logo')
             ]);
     }
 
@@ -52,20 +56,20 @@ class BrandResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                ->searchable()
-                ->label('Kategori'),
+                    ->searchable()
+                    ->label('Kategori'),
 
                 ImageColumn::make('logo')
-                ->label('Logo')
+                    ->label('Logo')
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                ->iconButton(),
+                    ->iconButton(),
                 Tables\Actions\DeleteAction::make()
-                ->iconButton()
+                    ->iconButton()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Service\ProductTransactionStockService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -32,11 +33,26 @@ class ProductTransaction extends Model
         'proof'
     ];
 
-    // Auto generate booking_id coyy
     protected static function booted()
     {
+        // Auto generate booking_id coyy
         static::creating(function ($order) {
             $order->booking_trx_id = 'TRX' . '-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        });
+
+        // deletion function -> App/Service/ProductTransactionStockService::restoreStock()
+        static::deleting(function ($transaction) {
+            // validation (Jika dihapus secara permanen)
+            if (! $transaction->isForceDeleting()) {
+                app(ProductTransactionStockService::class)
+                    ->restoreStock($transaction);
+            }
+        });
+
+        // restore function -> App/Service/ProductTransactionStockService::deductStock()
+        static::restoring(function ($transaction) {
+            app(ProductTransactionStockService::class)
+                ->deductStock($transaction);
         });
     }
 

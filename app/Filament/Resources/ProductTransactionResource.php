@@ -311,9 +311,9 @@ class ProductTransactionResource extends Resource
                     // ->badge()
                     ->boolean()
                     ->label('Status Pembayaran')
-                // ->formatStateUsing(fn ($state) => match ($state) {
-                //     '0' => 'Belum Lunas',
-                //     '1' => 'Lunas'
+                // ->formatStateUsing(fn (bool $state) => match ($state) {
+                //     ? 'Belum Lunas',
+                //     : => 'Lunas'
                 // }),
             ])
             ->filters([

@@ -17,7 +17,7 @@ class EditProductTransaction extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return app(ProductTransactionService::class)
-            ->create($data);
+            ->update($record, $data);
     }
 
     protected function getHeaderActions(): array

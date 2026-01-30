@@ -19,13 +19,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\ProductTransaction;
 use App\Models\ProductSize;
 use App\Models\Product;
-use BladeUI\Icons\Components\Icon;
+
 // Library or nahh..
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 
 use Filament\Notifications\Notification;
@@ -231,11 +231,7 @@ class ProductTransactionResource extends Resource
                                 return function ($attribute, $value, $fail) use ($get) {
                                     $stock = $get('stock');
 
-                                    if (! is_numeric($stock)) {
-                                        return;
-                                    }
-
-                                    if ($value > (int) $get('stock')) {
+                                    if (is_numeric($stock) && $value > (int) $get('stock')) {
                                         $fail('Qty melebihi stok yang tersedia.');
                                     }
                                 };
@@ -266,29 +262,41 @@ class ProductTransactionResource extends Resource
                             ->columnSpanFull()
                             ->label('Bukti pembelian'),
 
-                        // TOTAL SECTION
-                        TextInput::make('sub_total_amount')
+                        /* 
+                            hindari data truncated (dipotong karena berbeda tipe dengan tabel database)
+                            saat mengedit transaksi, namun tidak mengubah jumlah dari produk
+                        */
+                        Hidden::make('sub_total_amount')
+                            ->dehydrated(),
+
+                        Hidden::make('grand_total_amount')
+                            ->dehydrated(),
+
+                        // total display section
+                        Placeholder::make('sub_total_display')
                             ->label('Sub Total')
-                            ->readOnly()
-                            ->disabled()
-                            ->dehydrated()
-                            ->prefix('Rp.')
-                            ->formatStateUsing(
-                                fn($state) =>
-                                number_format($state ?? 0, 0, ',', '.')
+                            ->content(
+                                fn(callable $get) =>
+                                'Rp. ' . number_format(
+                                    // ambil data dari sub_total_amount
+                                    (int) $get('sub_total_amount'),
+                                    0,
+                                    ',',
+                                    ','
+                                )
                             ),
 
-                        TextInput::make('grand_total_amount')
-                            ->label('Total')
-                            ->readOnly()
-                            ->disabled()
-                            ->prefix('Rp.')
-                            ->dehydrated(true)
-                            ->formatStateUsing(
-                                fn($state) =>
-                                number_format($state ?? 0, 0, ',', '.')
-                            ),
-
+                        Placeholder::make('grand_total_display')
+                            ->label('Total Harga')
+                            ->content(
+                                fn(callable $get) =>
+                                'Rp. ' . number_format(
+                                    (int) $get('grand_total_amount'),
+                                    0,
+                                    ',',
+                                    ','
+                                )
+                            )
                     ]),
 
             ]);

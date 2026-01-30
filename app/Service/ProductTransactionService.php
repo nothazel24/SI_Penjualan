@@ -42,16 +42,17 @@ class ProductTransactionService
             // hitung SELISIH qty
             $oldQty = $transaction->qty;
             $newQty = $data['qty'];
-            $diff   = $newQty - $oldQty;
 
-            // kalau qty bertambah → cek stok
-            if ($diff > 0 && $diff > $product->stock) {
+            // validasi stock
+            if ($newQty > ($product->stock + $oldQty)) {
                 throw ValidationException::withMessages([
                     'qty' => 'Stok tidak mencukupi.',
                 ]);
             }
 
             // update stok berdasarkan selisih
+            $diff   = $newQty - $oldQty;
+
             if ($diff !== 0) {
                 $product->decrement('stock', $diff);
             }

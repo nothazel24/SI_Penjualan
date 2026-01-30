@@ -30,12 +30,17 @@ class CategoryResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name')
-                    ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true)
                     ->label('Kategori')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->rules([
+                        'min:5',
+                        'max:30'
+                    ])
                     ->validationMessages([
-                        'unique' => 'Nama kategori sudah digunakan. Silahkan masukkan nama kategori yang lain'
+                        'unique' => 'Nama kategori sudah digunakan',
+                        'min' => 'Nama kategori terlalu pendek (min 5 karakter)',
+                        'max' => 'Nama kategori terlalu panjang (max 30 karakter)'
                     ]),
 
                 FileUpload::make('icon')

@@ -92,34 +92,43 @@ class ProductTransactionResource extends Resource
                 Fieldset::make('Informasi Pembeli')
                     ->schema([
                         TextInput::make('name')
-                            ->required()
-                            ->maxLength(255)
                             ->columnSpanFull()
-                            ->regex('/^[A-Za-z\s.]+$/')
                             ->label('Nama Pembeli')
+                            ->required()
+                            ->regex('/^[A-Za-z\s.]+$/')
+                            ->rules([
+                                'min:10',
+                                'max:45',
+                            ])
                             ->validationMessages([
-                                'required' => 'Nama wajib diisi!',
-                                'regex' => 'Nama hanya bisa diisi oleh huruf!'
+                                'regex' => 'Nama hanya bisa diisi oleh huruf',
+                                'min' => 'Nama terlalu pendek. Isi dengan nama lengkap',
+                                'max' => 'Nama terlalu panjang'
                             ]),
 
                         TextInput::make('email')
-                            ->required()
-                            ->maxLength(255)
-                            ->regex('/^.+@.+$/i')
                             ->label('Email Pengguna')
+                            ->required()
+                            ->regex('/^.+@.+$/i')
+                            ->rules([
+                                'max:255',
+                            ])
                             ->validationMessages([
-                                'required' => 'Email wajib diisi!',
-                                'regex' => 'Masukkan alamat email yang valid!'
+                                'max' => 'Email terlalu panjang'
                             ]),
 
                         TextInput::make('phone')
                             ->required()
-                            ->tel()
-                            ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
+                            ->rules([
+                                'regex:/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/',
+                                'min:10',
+                                'max:13'
+                            ])
                             // custom validation messages
                             ->validationMessages([
-                                'required' => 'Nomor telepon wajib diisi!',
-                                'regex' => 'Nomor hanya bisa diisi oleh angka!'
+                                'regex' => 'Nomor telepon hanya bisa diisi oleh angka tanpa simbol',
+                                'min' => 'Nomor telepon terlalu pendek (min 10 digit)',
+                                'max' => 'Nomor telepon terlalu panjang (max 13 digit)'
                             ])
                             ->label('Nomor Telepon'),
 
@@ -159,12 +168,27 @@ class ProductTransactionResource extends Resource
 
                                 TextInput::make('post_code')
                                     ->label('Kode Pos')
-                                    ->numeric()
-                                    ->required(),
+                                    ->required()
+                                    ->rules([
+                                        'numeric',
+                                        'digits:5'
+                                    ])
+                                    ->validationMessages([
+                                        'numeric' => 'Kode pos hanya bisa diisi oleh angka',
+                                        'digits' => 'Kode pos harus terdiri dari 5 angka',
+                                    ]),
 
                                 TextInput::make('address')
                                     ->label('Alamat')
-                                    ->required(),
+                                    ->required()
+                                    ->rules([
+                                        'min:5',
+                                        'max:255'
+                                    ])
+                                    ->validationMessages([
+                                        'min' => 'Alamat rumah terlalu pendek (min 5 karakter)',
+                                        'max' => 'Alamat rumah terlalu panjang'
+                                    ]),
                             ])
                     ]),
 
@@ -257,6 +281,7 @@ class ProductTransactionResource extends Resource
 
                         FileUpload::make('proof')
                             ->image()
+                            ->nullable()
                             ->directory('products/proof')
                             ->maxSize(1024)
                             ->columnSpanFull()

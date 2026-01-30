@@ -33,12 +33,17 @@ class BrandResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name')
+                    ->label('Nama Brand')
                     ->required()
                     ->unique(ignoreRecord: true)
-                    ->maxLength(255)
-                    ->label('Nama Brand')
+                    ->rules([
+                        'min:5',
+                        'max:30'
+                    ])
                     ->validationMessages([
-                        'unique' => 'Nama brand sudah ada. Silahkan masukkan nama brand yang lain'
+                        'unique' => 'Nama brand sudah digunakan',
+                        'min' => 'Nama brand terlalu pendek (min 5 karakter)',
+                        'max' => 'Nama brand terlalu panjang (max 30 karakter)'
                     ]),
 
                 FileUpload::make('logo')

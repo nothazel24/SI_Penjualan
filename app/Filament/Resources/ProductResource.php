@@ -19,7 +19,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -39,19 +38,36 @@ class ProductResource extends Resource
                 Fieldset::make('Informasi Produk')
                     ->schema([
                         TextInput::make('name')
-                            ->required()
-                            ->maxLength(255)
                             ->unique(ignoreRecord: true)
                             ->label('Nama Produk')
+                            ->required()
+                            ->rules([
+                                'string',
+                                'min:5',
+                                'max:255'
+                            ])
                             ->validationMessages([
-                                'unique' => 'Nama produk sudah ada. Silahkan masukkan nama produk yang lain'
+                                'unique' => 'Nama produk sudah ada',
+                                'min' => 'Nama produk terlalu pendek (min 5 karakter)',
+                                'max' => 'Nama produk terlalu panjang'
                             ]),
 
                         TextInput::make('price')
-                            ->required()
-                            ->numeric()
                             ->prefix('Rp')
-                            ->label('Harga'),
+                            ->label('Harga')
+                            ->required()
+                            ->rules([
+                                /*
+                                    kenapa pakai rules bang? gak pake method filament yang required(), numeric(), sama minValue(100000)?. simple aja, pengen custom messages sy.
+                                */
+                                'numeric',
+                                'min:100000'
+                            ])
+                            ->validationMessages([
+                                'required' => 'Harga produk harus diisi',
+                                'numeric' => 'Harga hanya bisa diisi oleh angka',
+                                'min' => 'Harga yang dimasukkan terlalu rendah (min Rp. 100.000)'
+                            ]),
 
                         // Primary thumbnail
                         FileUpload::make('thumbnail')
@@ -71,6 +87,7 @@ class ProductResource extends Resource
                                     ->schema([
                                         FileUpload::make('photo')
                                             ->image()
+                                            ->nullable()
                                             ->directory('products/photos')
                                             ->maxSize(1024)
                                             ->label('Tambahkan gambar produk yang lainnya'),
@@ -83,7 +100,6 @@ class ProductResource extends Resource
                                     ->relationship()
                                     ->schema([
                                         Select::make('size')
-                                            ->required()
                                             ->label('Tambahkan ukuran produk yang lainnya')
                                             ->options(
                                                 // looping ukuran/size (30-45)
@@ -91,6 +107,11 @@ class ProductResource extends Resource
                                                     ->mapWithKeys(fn($size) => [$size => (string) $size])
                                                     ->toArray()
                                             )
+                                            ->distinct() // checking antar item repeater agar tidak ada data duplikat 
+                                            ->required()
+                                            ->validationMessages([
+                                                'distinct' => 'Ukuran tidak boleh duplikat'
+                                            ])
                                     ])
                                     ->addActionLabel('Tambah ukuran produk lainnya')
                                     ->label('Ukuran'),
@@ -102,32 +123,45 @@ class ProductResource extends Resource
                         Fieldset::make('Informasi Tambahan')
                             ->schema([
                                 Textarea::make('about')
+                                    ->label('Deskripsi / Tentang Produk')
                                     ->required()
-                                    ->label('Deskripsi / Tentang Produk'),
+                                    ->rules([
+                                        'min:5',
+                                        'max:500'
+                                    ])
+                                    ->validationMessages([
+                                        'min' => 'Deskripsi produk terlalu pendek (min 5 karakter)',
+                                        'max' => 'Deskripsi produk terlalu panjang'
+                                    ]),
 
                                 Select::make('is_popular')
-                                    ->required()
                                     ->label('Produk populer?')
                                     ->options([
                                         '1' => 'Populer',
                                         '0' => 'Tidak'
-                                    ]),
+                                    ])
+                                    ->required(),
 
                                 Select::make('category_id')
-                                    ->nullable()
+                                    ->required()
                                     ->relationship('category', 'name') // setting relationship (table name, displayed data(column))
                                     ->label('Kategori Produk'),
 
                                 Select::make('brand_id')
-                                    ->nullable()
+                                    ->required()
                                     ->relationship('brand', 'name')
                                     ->label('Brand Produk'),
 
                                 TextInput::make('stock')
-                                    ->required()
-                                    ->numeric()
                                     ->prefix('pcs')
-                                    ->label('Stok Barang'),
+                                    ->label('Stok Barang')
+                                    ->required()
+                                    ->rules([
+                                        'numeric',
+                                    ])
+                                    ->validationMessages([
+                                        'numeric' => 'Stock produk hanya bisa diisi oleh angka'
+                                    ]),
                             ])
                     ])
             ]);

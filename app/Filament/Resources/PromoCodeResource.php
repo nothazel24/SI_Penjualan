@@ -28,19 +28,31 @@ class PromoCodeResource extends Resource
         return $form
             ->schema([
                 TextInput::make('code')
-                    ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true)
                     ->label('Kode Promo')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->rules([
+                        'min:8',
+                        'max:20'
+                    ])
                     ->validationMessages([
-                        'unique' => 'Kode promo sudah digunakan. Silahkan masukkan kode promo yang lain'
+                        'unique' => 'Kode promo sudah digunakan. Silahkan masukkan kode promo yang lain',
+                        'min' => 'Kode promo terlalu pendek (min 8 karakter)',
+                        'max' => 'Kode promo terlalu panjang (max 20 karakter)'
                     ]),
 
                 TextInput::make('discount_amount')
-                    ->required()
-                    ->numeric()
                     ->prefix('IDR')
-                    ->label('Diskon Harga'),
+                    ->label('Diskon Harga')
+                    ->required()
+                    ->rules([
+                        'numeric',
+                        'min:20000'
+                    ])
+                    ->validationMessages([
+                        'numeric' => 'Jumlah diskon hanya bisa diisi oleh angka',
+                        'min' => 'Jumlah diskon terlalu kecil (min Rp 20.000)'
+                    ]),
             ]);
     }
 

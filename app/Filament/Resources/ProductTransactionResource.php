@@ -29,6 +29,7 @@ use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 
 use Filament\Notifications\Notification;
+use Filament\Tables\Actions\ActionGroup;
 use Throwable;
 
 class ProductTransactionResource extends Resource
@@ -267,7 +268,8 @@ class ProductTransactionResource extends Resource
                             ->options([
                                 '1' => 'Sudah Lunas',
                                 '0' => 'Belum Lunas'
-                            ]),
+                            ])
+                            ->disabled(fn(callable $get) => $get('is_paid') == true),
 
                         Select::make('promo_code_id')
                             ->nullable()
@@ -353,17 +355,55 @@ class ProductTransactionResource extends Resource
                     ->label('Status Pembayaran')
                     ->formatStateUsing(fn(bool $state) => $state ? 'Lunas' : 'Belum lunas')
                     ->color(fn(bool $state) => $state ? 'success' : 'danger')
+                    ->icon(fn(bool $state) => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->iconButton(),
-                Tables\Actions\EditAction::make()
-                    ->iconButton(),
-                Tables\Actions\DeleteAction::make()
-                    ->iconButton()
+                ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\Action::make('approve')
+                        ->label('Approve')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (ProductTransaction $record) {
+                            // validasiii (jika belum ada bukti/proof)
+                            if (blank($record->proof)) {
+
+                                // lempar notifikasi
+                                Notification::make()
+                                    ->title('Persetujuan transaksi ditunda')
+                                    ->body('Silahkan isi bukti pembayaran atas nama ' . $record->name)
+                                    ->warning()
+                                    ->send();
+
+                                // redirect ke halaman edit berdasarkan ID
+                                return redirect()->to(
+                                    \App\Filament\Resources\ProductTransactionResource::getUrl('edit', [
+                                        'record' => $record->id,
+                                        'approve' => 1 // tanda bahwa user re-direct dari list dengan menggunakan tombol approve
+                                    ])
+                                );
+                            }
+
+                            // jika proof sudah ada
+                            $record->update(['is_paid' => true]);
+
+                            Notification::make()
+                                ->title('Transaksi berhasil')
+                                ->body('Transaksi atas nama ' . $record->name . ' berhasil disetujui')
+                                ->success()
+                                ->send();
+                        })
+                        // ada ketika transaksi statusnya belum lunas, dan tidak ada jika sudah lunas
+                        ->visible(fn(ProductTransaction $record) => $record->is_paid == false)
+                ])
+                    ->tooltip('Actions')
+                    ->icon('heroicon-m-ellipsis-horizontal')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -10,11 +10,36 @@ use Illuminate\Database\Eloquent\Model;
 use App\Service\ProductTransactionService;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 
 class EditProductTransaction extends EditRecord
 {
     protected static string $resource = ProductTransactionResource::class;
+
+    protected bool $isApprove = false;
+
+    // catch flag / tanda yang dikiirim dan menyimpannya di livewire memory
+    public function mount($record): void
+    {
+        parent::mount($record);
+
+        // dd([
+        //     'record_value' => $record,
+        //     'record_type' => gettype($record),
+        //     'approve_flag' => request()->boolean('approve'),
+        //     'session_key' => 'approve_transaction_' . $record,
+        //     'session_value' => Session::get('approve_transaction_' . $record, 'NOT FOUND'),
+        // ]);
+
+        // simpan session
+        if (request()->boolean('approve')) {
+            Session::put('approve_transaction_' . $record, true);
+        }
+
+        // get session
+        $this->isApprove = Session::get('approve_transaction_' . $record, true);
+    }
 
     /*
         calling productTransactionService (update)
@@ -22,11 +47,49 @@ class EditProductTransaction extends EditRecord
     */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
+        $isApprove = Session::get('approve_transaction_' . $record->id, false);
+
+        // validasi 
+        if ($isApprove) {
+
+            // dd([ // debugging code
+            //     'isApprove' => $this->isApprove,
+            //     'proof' => $data['proof'],
+            //     'blank_proof' => blank($data['proof']),
+            // ]);
+
+            if (blank($data['proof'])) { // jika data bukti kosong
+                Notification::make()
+                    ->title('Transaksi gagal')
+                    ->body('Silahkan isi data bukti dengan lengkap!')
+                    ->danger()
+                    ->send();
+
+                throw new Halt(); // stop process
+            }
+
+            // setstate is_paid
+            $data['is_paid'] = true;
+        }
+
         try {
-            return app(ProductTransactionService::class)
+            // handle service validasi qty
+            $result = app(ProductTransactionService::class)
                 ->update($record, $data);
+
+            // notifikasi untuk approve
+            if ($isApprove) {
+                Notification::make()
+                    ->title('Transaksi berhasil')
+                    ->body('Transaksi atas nama ' . $record->name . ' berhasil disetujui')
+                    ->success()
+                    ->send();
+            }
+
+            // kembalikan result
+            return $result;
         } catch (ValidationException $e) {
-            // lempar notifikasi qty berlebih dari service. biar filament gk bengong saat update terjadi
+            // error qty (service)
             Notification::make()
                 ->title('Gagal menyimpan')
                 ->body($e->errors()['qty'][0] ?? 'Validasi gagal')
@@ -37,56 +100,34 @@ class EditProductTransaction extends EditRecord
         }
     }
 
-    protected bool $isApprove = false;
-
-    // catch flag / tanda yang dikiirim dan menyimpannya di livewire memory
-    public function mount($record): void
+    // timpa notifikasi sukses (saat approve saja)
+    protected function getSavedNotification(): ?Notification
     {
-        parent::mount($record);
-        $this->isApprove = request()->boolean('approve');
-    }
+        $isApprove = Session::get('approve_transaction_' . $this->record->id, false);
 
-    // ubah state transaksi
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        if ($this->isApprove && filled($data['proof'])) {
-            $data['is_paid'] = true;
+        // validasi
+        if ($isApprove) {
+            return null;
         }
-
-        return $data;
-    }
-
-    // save data kedalam database 
-    protected function afterSave()
-    {
-        // jika kedua data ada
-        if ($this->isApprove && $this->record->is_paid) {
-            Notification::make()
-                ->title('Transaksi berhasil')
-                ->body('Transaksi atas nama ' . $this->record->name . ' berhasil disetujui')
-                ->success()
-                ->send();
-
-            return ProductTransactionResource::getUrl('index');
-        } else { // jika salah satu tidak sesuai syarat / keduanya kosong
-            if (blank($this->record->proof)) {
-                // lempar notifikasi
-                Notification::make()
-                    ->title('Transaksi gagal')
-                    ->body('Silahkan isi data bukti dengan lengkap!')
-                    ->danger()
-                    ->send();
-
-                throw new Halt(); // stop eksekusi program
-            }
-        }
+        return parent::getSavedNotification();
     }
 
     // redirect ke halaman semula
-    // protected function getRedirectUrl(): ?string
-    // {
-    //     return ProductTransactionResource::getUrl('index');
-    // }
+    protected function getRedirectUrl(): ?string
+    {
+        $isApprove = Session::get('approve_transaction_' . $this->record->id, false);
+
+        // validasi script
+        if ($isApprove) {
+            // hapus session jika berhasil
+            Session::forget('approve_transaction_' . $this->record->id,);
+
+            return ProductTransactionResource::getUrl('index');
+        }
+
+        // selalu kembalikan nilai ketika memakai ?string
+        return null;
+    }
 
     protected function getHeaderActions(): array
     {

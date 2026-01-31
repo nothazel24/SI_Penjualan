@@ -30,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class ProductTransactionResource extends Resource
@@ -269,7 +270,7 @@ class ProductTransactionResource extends Resource
                                 '1' => 'Sudah Lunas',
                                 '0' => 'Belum Lunas'
                             ])
-                            ->disabled(fn(callable $get) => $get('is_paid') == true),
+                            ->disabled(fn(callable $get) => $get('is_paid') == true && filled($get('proof'))),
 
                         Select::make('promo_code_id')
                             ->nullable()
@@ -366,7 +367,7 @@ class ProductTransactionResource extends Resource
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),
                     Tables\Actions\Action::make('approve')
-                        ->label('Approve')
+                        ->label('Setujui Transaksi')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->requiresConfirmation()
@@ -400,7 +401,15 @@ class ProductTransactionResource extends Resource
                                 ->send();
                         })
                         // ada ketika transaksi statusnya belum lunas, dan tidak ada jika sudah lunas
-                        ->visible(fn(ProductTransaction $record) => $record->is_paid == false)
+                        ->visible(fn(ProductTransaction $record) => $record->is_paid == false),
+                    // approve section
+                    Tables\Actions\Action::make('download_proof')
+                        ->label('Download bukti')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->openUrlInNewTab()
+                        ->url(fn(ProductTransaction $record) => $record->proof ? Storage::url($record->proof) : null)
+                        ->visible(fn(ProductTransaction $record) => $record->is_paid && filled($record->proof))
                 ])
                     ->tooltip('Actions')
                     ->icon('heroicon-m-ellipsis-horizontal')

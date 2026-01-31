@@ -18,6 +18,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Actions\ActionGroup;
 
 class CategoryResource extends Resource
 {
@@ -68,10 +69,12 @@ class CategoryResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->iconButton(),
-                Tables\Actions\DeleteAction::make()
-                    ->iconButton(),
+                ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make()
+                ])
+                ->tooltip('Actions')
+                ->icon('heroicon-m-ellipsis-horizontal')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

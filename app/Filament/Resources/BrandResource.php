@@ -38,12 +38,12 @@ class BrandResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->rules([
-                        'min:5',
+                        'min:4',
                         'max:30'
                     ])
                     ->validationMessages([
                         'unique' => 'Nama brand sudah digunakan',
-                        'min' => 'Nama brand terlalu pendek (min 5 karakter)',
+                        'min' => 'Nama brand terlalu pendek (min 4 karakter)',
                         'max' => 'Nama brand terlalu panjang (max 30 karakter)'
                     ]),
 

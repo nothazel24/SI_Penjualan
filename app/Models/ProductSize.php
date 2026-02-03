@@ -28,9 +28,4 @@ class ProductSize extends Model
             ->pluck('size', 'id')
             ->toArray();
     }
-
-    public function product_size()
-    {
-        return $this->belongsTo(ProductSize::class);
-    }
 }

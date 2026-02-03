@@ -33,12 +33,14 @@ class CategoryResource extends Resource
                 TextInput::make('name')
                     ->label('Kategori')
                     ->required()
+                    ->regex('/^[A-Za-z\s.]+$/')
                     ->unique(ignoreRecord: true)
                     ->rules([
                         'min:5',
                         'max:30'
                     ])
                     ->validationMessages([
+                        'regex' => 'Nama kategori tidak bisa diisi oleh angka',
                         'unique' => 'Nama kategori sudah digunakan',
                         'min' => 'Nama kategori terlalu pendek (min 5 karakter)',
                         'max' => 'Nama kategori terlalu panjang (max 30 karakter)'

@@ -31,6 +31,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Facades\Storage;
+use Filament\Tables\Enums\ActionsPosition;
 use Throwable;
 
 class ProductTransactionResource extends Resource
@@ -270,7 +271,13 @@ class ProductTransactionResource extends Resource
                                 '1' => 'Sudah Lunas',
                                 '0' => 'Belum Lunas'
                             ])
-                            ->disabled(fn(callable $get) => $get('is_paid') == true && filled($get('proof'))),
+                            /*
+                                perbaikan fitur (method disabled langsung tereksekusi sebelum data masuk kedalam database)
+                                EXPECTED RESULT : 
+                                method disabled langsung diterapkan JIKA data sudah masuk kedalam database terlebih dahulu
+                            */
+                           // ->disabled(fn(callable $get) => $get('is_paid') && filled($get('proof')))
+                            ,
 
                         Select::make('promo_code_id')
                             ->nullable()
@@ -288,7 +295,7 @@ class ProductTransactionResource extends Resource
                             ->directory('products/proof')
                             ->maxSize(1024)
                             ->columnSpanFull()
-                            ->label('Bukti pembelian'),
+                            ->label('Bukti pembelian'), // tambahin logika disabled juga seperti field is_paid
 
                         /* 
                             hindari data truncated (dipotong karena berbeda tipe dengan tabel database)
@@ -356,7 +363,7 @@ class ProductTransactionResource extends Resource
                     ->label('Status Pembayaran')
                     ->formatStateUsing(fn(bool $state) => $state ? 'Lunas' : 'Belum lunas')
                     ->color(fn(bool $state) => $state ? 'success' : 'danger')
-                    ->icon(fn(bool $state) => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
+                    ->icon(fn(bool $state) => $state ? 'heroicon-o-check-badge' : 'heroicon-o-x-circle')
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
@@ -413,7 +420,7 @@ class ProductTransactionResource extends Resource
                 ])
                     ->tooltip('Actions')
                     ->icon('heroicon-m-ellipsis-horizontal')
-            ])
+            ], ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

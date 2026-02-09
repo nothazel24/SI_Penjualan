@@ -1,5 +1,6 @@
 @extends('pdf.layouts.invoice')
 
+{{-- catch & re-define data 'invoice' to $invoice --}}
 @section('content')
     <h2 class="text-center font-bold mb-6">
         INVOICE
@@ -24,7 +25,7 @@
         <tbody>
             <tr>
                 <td class="text-center">1</td>
-                <td>{{ $invoice->product->name }}</td>
+                <td>{{ $invoice->product->name }}</td> {{-- RELATION BTW: ambil data nama dari product --}}
                 <td class="text-center">{{ $invoice->qty }}</td>
                 <td class="text-right">
                     Rp {{ number_format($invoice->sub_total_amount, 0, ',', '.') }}

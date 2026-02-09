@@ -424,8 +424,8 @@ class ProductTransactionResource extends Resource
                         ->label('Download Invoice')
                         ->color('warning')
                         ->icon('heroicon-o-folder-arrow-down')
-                        ->url(fn($record) => route('invoice.download', $record->id))
-                        ->openUrlInNewTab()
+                        ->url(fn($record) => route('invoice.download', $record->id)) // sending record id to route
+                        ->openUrlInNewTab() // (!) butuh le, soalna pake url() buat generate pdf invoice
                 ])
                     ->tooltip('Actions')
                     ->icon('heroicon-m-ellipsis-horizontal')

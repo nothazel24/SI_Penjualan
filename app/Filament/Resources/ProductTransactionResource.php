@@ -32,13 +32,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Facades\Storage;
 use Filament\Tables\Enums\ActionsPosition;
-use Filament\Forms\Components\DatePicker;
-
-use Barryvdh\DomPDF\Facade\Pdf; // library generate pdf
-use Filament\Actions\Action;
 use Throwable;
-
-use function Laravel\Prompts\form;
 
 class ProductTransactionResource extends Resource
 {
@@ -415,7 +409,7 @@ class ProductTransactionResource extends Resource
                         })
                         // ada ketika transaksi statusnya belum lunas, dan tidak ada jika sudah lunas
                         ->visible(fn(ProductTransaction $record) => $record->is_paid == false),
-
+                        
                     // approve section
                     Tables\Actions\Action::make('download_proof')
                         ->label('Download bukti')
@@ -423,39 +417,6 @@ class ProductTransactionResource extends Resource
                         ->color('info')
                         ->openUrlInNewTab()
                         ->url(fn(ProductTransaction $record) => $record->proof ? Storage::url($record->proof) : null)
-                        ->visible(fn(ProductTransaction $record) => $record->is_paid && filled($record->proof)),
-
-                    Tables\Actions\Action::make('download_invoice')
-                        ->label('Print Invoice')
-                        ->icon('heroicon-o-printer')
-                        ->color('#252525')
-                        ->action(function ($record) {
-                            $record = $record->load('product');
-
-                            // dd([
-                            //     'record' => $record->toArray(),
-                            //     'product' => $record->product,
-                            //     'relations' => $record->getRelations(),
-                            //     'invoice_number' => $record->invoice_number,
-                            //     'is_paid' => $record->is_paid,
-                            // ]);
-
-                            // load view blade & send data $record melalui 'order' 
-                            $pdf = Pdf::loadView('pdf.invoice', [
-                                'order' => $record
-                            ])
-                                ->setPaper('a4', 'landscape')
-                                ->setOption('margin-top', 10)
-                                ->setOption('margin-right', 10)
-                                ->setOption('margin-bottom', 10)
-                                ->setOption('margin-left', 10);
-
-                            // download & generate nama file INVOICE-NUMBER.pdf
-                            return response()->streamDownload(function () use ($pdf) {
-                                echo $pdf->output();
-                            }, 'INVOICE-' . $record->booking_trx_id . '.pdf');
-                        })
-                        ->visible(fn(ProductTransaction $record) => $record->is_paid) // ada jika statusnya udah lunas
                 ])
                     ->tooltip('Actions')
                     ->icon('heroicon-m-ellipsis-horizontal')

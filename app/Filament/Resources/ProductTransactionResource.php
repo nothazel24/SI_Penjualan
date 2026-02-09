@@ -453,7 +453,7 @@ class ProductTransactionResource extends Resource
                             // download & generate nama file INVOICE-NUMBER.pdf
                             return response()->streamDownload(function () use ($pdf) {
                                 echo $pdf->output();
-                            }, 'INVOICE-' . $record->invoice_number . '.pdf');
+                            }, 'INVOICE-' . $record->booking_trx_id . '.pdf');
                         })
                         ->visible(fn(ProductTransaction $record) => $record->is_paid) // ada jika statusnya udah lunas
                 ])

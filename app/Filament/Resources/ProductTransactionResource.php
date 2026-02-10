@@ -32,6 +32,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Facades\Storage;
 use Filament\Tables\Enums\ActionsPosition;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Throwable;
 
 class ProductTransactionResource extends Resource
@@ -409,14 +410,22 @@ class ProductTransactionResource extends Resource
                         })
                         // ada ketika transaksi statusnya belum lunas, dan tidak ada jika sudah lunas
                         ->visible(fn(ProductTransaction $record) => $record->is_paid == false),
-                        
+
                     // approve section
                     Tables\Actions\Action::make('download_proof')
                         ->label('Download bukti')
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->openUrlInNewTab()
-                        ->url(fn(ProductTransaction $record) => $record->proof ? Storage::url($record->proof) : null)
+                        ->url(fn(ProductTransaction $record) => $record->proof ? Storage::url($record->proof) : null),
+
+                    // download invoice section
+                    Tables\Actions\Action::make('download_invoice')
+                        ->label('Download Invoice')
+                        ->color('warning')
+                        ->icon('heroicon-o-folder-arrow-down')
+                        ->url(fn($record) => route('invoice.download', $record->id)) // sending record id to route
+                        ->openUrlInNewTab() // (!) butuh le, soalna pake url() buat generate pdf invoice
                 ])
                     ->tooltip('Actions')
                     ->icon('heroicon-m-ellipsis-horizontal')

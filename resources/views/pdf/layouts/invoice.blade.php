@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Invoice</title>
 
     <style>
         body {

@@ -62,6 +62,7 @@ class ProductTransactionResource extends Resource
         $set('grand_total_amount', $result['total']);
     }
 
+    // helper untuk membawa data stock dan menyompannya di memori livewire
     protected static function getQty($state, callable $set)
     {
         $product = Product::find($state);
@@ -69,9 +70,15 @@ class ProductTransactionResource extends Resource
     }
 
     // helper validate qty
-    protected static function validateQtyAgainstStock(int $qty, callable $get)
+    protected static function validateQtyAgainstStock($qty, callable $get)
     {
-        // get stock
+        // stopp kalau tipe data masih belum valid (string)
+        if (! is_numeric($qty)) {
+            return;
+        }
+        $qty = (int) $qty; // set to int
+
+        // ngambil dari data stock yang sudah diambil & disimpan oleh helper getQty
         $stock = $get('stock');
 
         if (! is_numeric($stock)) {
@@ -215,7 +222,7 @@ class ProductTransactionResource extends Resource
                             ->afterStateUpdated(
                                 function ($state, callable $get, callable $set) {
                                     static::recalculate($get, $set);
-                                    static::getQty($state, $set);
+                                    static::getQty($state, $set); // call helper getQty product
                                 }
                             ),
 
@@ -248,6 +255,7 @@ class ProductTransactionResource extends Resource
                             ->default(1)
                             ->minValue(1)
                             ->reactive()
+                            ->live(debounce: 500)
                             ->required()
                             ->afterStateUpdated(
                                 function ($state, callable $get, callable $set) {
@@ -255,15 +263,18 @@ class ProductTransactionResource extends Resource
                                     static::validateQtyAgainstStock($state, $get);
                                 }
                             )
-                            ->rule(function (callable $get) { // rule buat check data
-                                return function ($attribute, $value, $fail) use ($get) {
-                                    $stock = $get('stock');
+                            ->disabled(fn(callable $get) => !$get('product_id')),
 
-                                    if (is_numeric($stock) && $value > (int) $get('stock')) {
-                                        $fail('Qty melebihi stok yang tersedia.');
-                                    }
-                                };
-                            }),
+                        // validasi via filament (field bottom message)
+                        // ->rule(function (callable $get) { // rule buat check data
+                        //     return function ($attribute, $value, $fail) use ($get) {
+                        //         $stock = $get('stock');
+
+                        //         if (is_numeric($stock) && $value > (int) $get('stock')) {
+                        //             $fail('Qty melebihi stok yang tersedia.');
+                        //         }
+                        //     };
+                        // }),
 
                         Select::make('is_paid')
                             ->required()
@@ -272,13 +283,13 @@ class ProductTransactionResource extends Resource
                                 '1' => 'Sudah Lunas',
                                 '0' => 'Belum Lunas'
                             ])
+                            ->disabled(fn(callable $get) => !$get('product_id')),
                         /*
                                 perbaikan fitur (method disabled langsung tereksekusi sebelum data masuk kedalam database)
                                 EXPECTED RESULT : 
                                 method disabled langsung diterapkan JIKA data sudah masuk kedalam database terlebih dahulu
                             */
-                        // ->disabled(fn(callable $get) => $get('is_paid') && filled($get('proof')))
-                        ,
+                        // ->disabled(fn(callable $get) => $get('is_paid') && filled($get('proof'))),
 
                         Select::make('promo_code_id')
                             ->nullable()
@@ -288,7 +299,8 @@ class ProductTransactionResource extends Resource
                             ->afterStateUpdated(
                                 fn($state, callable $set, callable $get) =>
                                 static::recalculate($get, $set)
-                            ),
+                            )
+                            ->disabled(fn(callable $get) => !$get('product_id')),
 
                         FileUpload::make('proof')
                             ->image()
@@ -296,7 +308,8 @@ class ProductTransactionResource extends Resource
                             ->directory('products/proof')
                             ->maxSize(1024)
                             ->columnSpanFull()
-                            ->label('Bukti pembelian'), // tambahin logika disabled juga seperti field is_paid
+                            ->label('Bukti pembelian') // tambahin logika disabled juga seperti field is_paid
+                            ->disabled(fn(callable $get) => !$get('product_id')),
 
                         /* 
                             hindari data truncated (dipotong karena berbeda tipe dengan tabel database)

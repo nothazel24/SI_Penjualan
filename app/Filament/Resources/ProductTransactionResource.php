@@ -263,18 +263,16 @@ class ProductTransactionResource extends Resource
                                     static::validateQtyAgainstStock($state, $get);
                                 }
                             )
-                            ->disabled(fn(callable $get) => !$get('product_id')),
+                            ->disabled(fn(callable $get) => !$get('product_id'))
+                            ->rule(function (callable $get) { // rule buat check data
+                                return function ($attribute, $value, $fail) use ($get) {
+                                    $stock = $get('stock');
 
-                        // validasi via filament (field bottom message)
-                        // ->rule(function (callable $get) { // rule buat check data
-                        //     return function ($attribute, $value, $fail) use ($get) {
-                        //         $stock = $get('stock');
-
-                        //         if (is_numeric($stock) && $value > (int) $get('stock')) {
-                        //             $fail('Qty melebihi stok yang tersedia.');
-                        //         }
-                        //     };
-                        // }),
+                                    if (is_numeric($stock) && $value > (int) $get('stock')) {
+                                        $fail('Qty melebihi stok yang tersedia.');
+                                    }
+                                };
+                            }),
 
                         Select::make('is_paid')
                             ->required()

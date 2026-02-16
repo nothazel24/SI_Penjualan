@@ -2,12 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\ProductTransaction;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 
 class TransactionReport extends Page
 {
@@ -60,6 +62,26 @@ class TransactionReport extends Page
     // generate pdf
     public function generatePdf()
     {
+        // validasi state
+        $this->validate();
+
+        // validasi data (jika kosong)
+        $transaction = ProductTransaction::whereBetween('created_at', [
+            Carbon::parse($this->startDate)->startOfDay(),
+            Carbon::parse($this->endDate)->endOfDay()
+        ])->exists();
+
+        // lempar notifikasi
+        if (! $transaction) {
+            Notification::make()
+                ->title('Data tidak dapat ditemukan')
+                ->body('Tidak ada data yang ditemukan dalam rentang waktu yang dipilih')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         // redirect ke route (supaya tidak terjadi error parsing)
         return redirect()->route('report.transactions.pdf', [
             'transaction' => $this->transaction,
